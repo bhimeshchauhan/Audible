@@ -32,7 +32,9 @@ from sklearn.metrics.pairwise import cosine_similarity
 from sentence_transformers import SentenceTransformer
 
 from openai import OpenAI
-
+from dotenv import load_dotenv
+import time
+load_dotenv()
 
 # =========================
 # Config
@@ -82,10 +84,11 @@ class CFG:
     ema_alpha: float = 0.35
 
     # Outputs
-    out_events_jsonl: str = "relationship_events.jsonl"
-    out_cluster_summary: str = "cluster_summary.json"
-    out_interaction_html: str = "interaction_graph.html"
-    out_cluster_graph_html: str = "relationship_clusters_graph.html"
+    out_dir: str = "results"
+    out_events_jsonl: str = "results/relationship_events.jsonl"
+    out_cluster_summary: str = "results/cluster_summary.json"
+    out_interaction_html: str = "results/interaction_graph.html"
+    out_cluster_graph_html: str = "results/relationship_clusters_graph.html"
 
 CFG = CFG()
 
@@ -114,6 +117,9 @@ def clean_text(s: str) -> str:
 
 def log_score(x: int) -> float:
     return 1.0 + math.log(1 + x)
+
+def ensure_results_dir():
+    os.makedirs(CFG.out_dir, exist_ok=True)
 
 
 # =========================
@@ -416,21 +422,38 @@ Rules:
   }}
 """.strip()
 
-def call_openai_json(client: OpenAI, model: str, prompt: str) -> Optional[dict]:
-    try:
-        resp = client.chat.completions.create(
-            model=model,
-            messages=[{"role":"user","content":prompt}],
-            temperature=CFG.llm_temperature,
-        )
-        text = resp.choices[0].message.content.strip()
-        # parse first JSON object
-        m = re.search(r"\{.*\}", text, flags=re.DOTALL)
-        if not m:
-            return None
-        return json.loads(m.group(0))
-    except Exception:
-        return None
+def call_openai_batch(
+    client: OpenAI,
+    model: str,
+    prompts: List[str],
+    sleep_s: float = 1.2,
+) -> List[Optional[dict]]:
+    """
+    Sends prompts sequentially but in controlled batches.
+    Returns parsed JSON objects or None per prompt.
+    """
+    results = []
+
+    for prompt in prompts:
+        try:
+            resp = client.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=CFG.llm_temperature,
+            )
+            text = resp.choices[0].message.content.strip()
+            m = re.search(r"\{.*\}", text, flags=re.DOTALL)
+            if not m:
+                results.append(None)
+            else:
+                results.append(json.loads(m.group(0)))
+        except Exception as e:
+            print(f"[WARN] OpenAI error: {e}")
+            results.append(None)
+
+        time.sleep(sleep_s)  # <-- rate limit safety
+
+    return results
 
 def verify_description(obj: dict, a: str, b: str, evidence: List[str]) -> Optional[dict]:
     if not isinstance(obj, dict):
@@ -575,6 +598,7 @@ def build_cluster_graph(events: List[dict], cluster_labels: List[int]) -> nx.DiG
 
 
 def main(pdf_path: str):
+    ensure_results_dir()
     nlp = build_nlp()
     client = OpenAI()
 
@@ -600,28 +624,39 @@ def main(pdf_path: str):
     candidates = candidates[:CFG.max_pairs_to_describe]
 
     # Stage 3: describe + verify
-    events = []
-    print("[INFO] Describing relationships (schema-free) with strict quote verification...")
-    for (a, b), w in tqdm(candidates, desc="Describe"):
-        ev = edge_evidence.get((a, b), []) or edge_evidence.get((b, a), [])
-        if not ev:
-            continue
-        # LLM describe
-        prompt = build_prompt(a, b, ev)
-        obj = call_openai_json(client, CFG.openai_model, prompt)
-        if not obj:
-            continue
-        verified = verify_description(obj, a, b, ev)
-        if not verified:
-            continue
-        # store time index approx as first window index where edge happened (proxy)
-        verified["pair"] = f"{a}|||{b}"
-        verified["interaction_weight"] = int(w)
-        events.append(verified)
+    print("[INFO] Describing relationships (batched, schema-free)...")
 
-    if not events:
-        print("[ERROR] No verified relationship descriptions. Increase window size or lower quote constraints.")
-        sys.exit(3)
+    batch_size = 8
+    all_events = []
+
+    for i in range(0, len(candidates), batch_size):
+        batch = candidates[i : i + batch_size]
+
+        prompts = []
+        meta = []
+
+        for (a, b), w in batch:
+            ev = edge_evidence.get((a, b), []) or edge_evidence.get((b, a), [])
+            if not ev:
+                continue
+            prompts.append(build_prompt(a, b, ev))
+            meta.append((a, b, w, ev))
+
+        if not prompts:
+            continue
+
+        responses = call_openai_batch(client, CFG.openai_model, prompts)
+
+        for resp, (a, b, w, ev) in zip(responses, meta):
+            verified = verify_description(resp, a, b, ev)
+            if not verified:
+                continue
+
+            verified["pair"] = f"{a}|||{b}"
+            verified["interaction_weight"] = int(w)
+            all_events.append(verified)
+
+    events = all_events
 
     # Embed + cluster
     print("[INFO] Embedding + clustering descriptions (emergent relationship types)...")
