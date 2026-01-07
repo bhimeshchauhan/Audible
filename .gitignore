@@ -1,57 +1,62 @@
-# Python
+########################
+# Python bytecode
+########################
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 
+########################
 # Virtual environments
+########################
 .venv/
 venv/
 env/
 
-# OS files
-.DS_Store
-
-# Model / cache / logs
-.rel_cache/
-*.log
-
-# Generated outputs from this project
-*_graph.html
-cluster_summary.json
-relationship_events.jsonl
-relations.jsonl
-
-# Python virtual envs / packaged runtimes
-.venv/
-venv/
-env/
+########################
+# Embedded / accidental envs
+########################
+audible/
 source/
 
-# Python cache
-__pycache__/
-*.pyc
+########################
+# OS / editor files
+########################
+.DS_Store
 
-# Outputs / artifacts
+########################
+# Logs & caches
+########################
+*.log
+.rel_cache/
+
+########################
+# ML / model caches
+########################
+.cache/
+models/
+checkpoints/
+
+########################
+# Generated outputs / artifacts
+########################
+*_graph.html
 *.html
 *.json
 *.jsonl
 *.pdf
-# Python envs / build junk
-.venv/
-venv/
-env/
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.DS_Store
 
-# Your accidental embedded env folder(s)
-audible/
-source/
+########################
+# Project-specific outputs
+########################
+cluster_summary.json
+relationship_events.jsonl
+relations.jsonl
+interaction_graph.html
+relationship_clusters_graph.html
 
-# Generated outputs
-*.html
-*.json
-*.jsonl
+########################
+# Temporary / misc
+########################
+tmp/
+temp/
