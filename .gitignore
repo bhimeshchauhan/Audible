@@ -37,3 +37,21 @@ __pycache__/
 *.json
 *.jsonl
 *.pdf
+# Python envs / build junk
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+
+# Your accidental embedded env folder(s)
+audible/
+source/
+
+# Generated outputs
+*.html
+*.json
+*.jsonl
