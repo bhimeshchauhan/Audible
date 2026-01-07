@@ -60,3 +60,10 @@ relationship_clusters_graph.html
 ########################
 tmp/
 temp/
+
+########################
+# Results folder (generated artifacts)
+########################
+results/
+books/
+
