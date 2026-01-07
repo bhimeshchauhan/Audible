@@ -21,3 +21,19 @@ env/
 cluster_summary.json
 relationship_events.jsonl
 relations.jsonl
+
+# Python virtual envs / packaged runtimes
+.venv/
+venv/
+env/
+source/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Outputs / artifacts
+*.html
+*.json
+*.jsonl
+*.pdf
