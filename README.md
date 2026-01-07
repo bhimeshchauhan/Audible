@@ -272,4 +272,4 @@ Audio realism depends on TTS provider controls
 
 ## 📜 License
 
-MIT
+[GNU General Public License](LICENSE)
