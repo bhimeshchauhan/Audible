@@ -163,9 +163,9 @@ PDF
                          └─> Chunked TTS
                              └─> Stitching
                                  └─> Audiobook
+```
 
-
-🎭 What Makes It Feel Real
+## 🎭 What Makes It Feel Real
 
 ✅ Voice Consistency
 Characters never change voices mid-story.
@@ -179,47 +179,45 @@ Pauses, emphasis, and transitions feel human.
 ✅ Narrative Structure Preserved
 Scenes and chapters flow naturally.
 
-🧪 Analysis Layer (Character Graphs)
+## 🧪 Analysis Layer (Character Graphs)
 
-The repo currently includes a powerful analysis engine (ner.py) that:
+- The repo currently includes a powerful analysis engine (ner.py) that:
+- Builds interaction graphs
+- Infers relationship dynamics
+- Clusters emergent relationship types
+- Produces auditable evidence with quotes
 
-Builds interaction graphs
+### Outputs:
 
-Infers relationship dynamics
+- interaction_graph.html
+- relationship_clusters_graph.html
+- relationship_events.jsonl
+- cluster_summary.json
 
-Clusters emergent relationship types
+## 🚀 Quickstart
 
-Produces auditable evidence with quotes
-
-Outputs:
-
-interaction_graph.html
-
-relationship_clusters_graph.html
-
-relationship_events.jsonl
-
-cluster_summary.json
-
-🚀 Quickstart
-1) Environment Setup
+### Environment Setup
+```python
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 python -m spacy download en_core_web_sm
+```
 
-
-Create .env (not committed):
-
+### Create .env (not committed):
+```shell
 OPENAI_API_KEY=your_key_here
 OPENAI_MODEL=gpt-4o-mini
+```
 
-2) Run Analysis
+### Run Analysis
+```shell
 python ner.py path/to/book.pdf
-
+```
 
 Artifacts are written to results/ (git-ignored).
 
+```text
 📁 Recommended Repo Structure
 .
 ├─ ner.py                      # Character + relationship inference
@@ -236,34 +234,35 @@ Artifacts are written to results/ (git-ignored).
 ├─ requirements.txt
 ├─ .env.example
 └─ README.md
+```
 
-🧭 Design Principles
+## 🧭 Design Principles
 
-Auditability: every stage writes inspectable artifacts
+- Auditability: every stage writes inspectable artifacts
 
-Determinism: stable voices, caching, repeatable runs
+- Determinism: stable voices, caching, repeatable runs
 
-Fail-safe: narrator fallback when uncertain
+- Fail-safe: narrator fallback when uncertain
 
-Schema-free: relationships emerge, not hardcoded
+- Schema-free: relationships emerge, not hardcoded
 
-Bounded runtime: batching + candidate limits
+- Bounded runtime: batching + candidate limits
 
-🗺️ Roadmap
+## 🗺️ Roadmap
 
- Robust chapter & TOC parsing
+ - Robust chapter & TOC parsing
 
- Improved speaker attribution models
+ - Improved speaker attribution models
 
- Emotion smoothing across scenes
+ - Emotion smoothing across scenes
 
- Provider-specific prosody tuning
+ - Provider-specific prosody tuning
 
- Automatic voice casting via embeddings
+ - Automatic voice casting via embeddings
 
- One-command CLI: pdf2audiobook book.pdf
+ - One-command CLI: pdf2audiobook book.pdf
 
-⚠️ Notes & Constraints
+## ⚠️ Notes & Constraints
 
 Text-extractable PDFs only (OCR not yet included)
 
@@ -271,6 +270,6 @@ Speaker attribution is probabilistic
 
 Audio realism depends on TTS provider controls
 
-📜 License
+## 📜 License
 
 MIT
