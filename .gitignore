@@ -12,7 +12,13 @@ __pycache__/
 .venv/
 venv/
 env/
+
+########################
+# Environment files (except example)
+########################
 .env
+.env.local
+.env.*.local
 
 ########################
 # Embedded / accidental envs
@@ -24,6 +30,12 @@ source/
 # OS / editor files
 ########################
 .DS_Store
+*.swp
+*.swo
+.idea/
+.vscode/
+.cursor/
+*.sublime-*
 
 ########################
 # Node / frontend
@@ -53,30 +65,16 @@ checkpoints/
 ########################
 # Generated outputs / artifacts
 ########################
-*_graph.html
-*.html
-*.json
-*.jsonl
-*.pdf
-
-########################
-# Project-specific outputs
-########################
-cluster_summary.json
-relationship_events.jsonl
-relations.jsonl
-interaction_graph.html
-relationship_clusters_graph.html
+results/
 
 ########################
 # Temporary / misc
 ########################
 tmp/
 temp/
+*.tmp
 
 ########################
-# Results folder (generated artifacts)
+# Test books
 ########################
-results/
 books/
-

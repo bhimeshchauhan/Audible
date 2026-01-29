@@ -1,275 +1,251 @@
-# 📚➡️🎧 PDF → Cinematic Audiobook  
-### Character-Aware Voices · Emotion · Natural Flow
+# PDF Character Graph
 
-Transform a **book PDF** into a **realistic, listenable audiobook** — with consistent character voices, sentiment-aware delivery, and natural pacing.
+Extract character relationships from PDF books and visualize them as interactive graphs.
 
-This repository is built around one guiding principle:
+Upload a book PDF, and the application will:
+1. Extract all characters using Named Entity Recognition (NER)
+2. Resolve coreferences (pronouns, aliases)
+3. Analyze relationships using an LLM
+4. Generate an interactive network visualization
 
-> **Audiobooks are not text-to-speech. They are performance.**
+## Features
 
----
+- **Character Discovery**: Automatic detection of characters using spaCy NER
+- **Coreference Resolution**: Links pronouns and aliases to character names
+- **Relationship Extraction**: Uses LLM to infer relationship types and directions
+- **Interactive Visualization**: Explore character networks with vis.js graphs
+- **Local-First**: Default uses Ollama for free, private inference
 
-## ✨ Why This Exists
+## Project Structure
 
-Most automated audiobook attempts fail because:
-
-- Voices change mid-book
-- Dialogue and narration sound identical
-- No rhythm, emotion, or pacing
-- Characters feel flat and interchangeable
-
-This project solves that by treating audiobook generation as a **structured NLP + audio pipeline**, not a single TTS call.
-
----
-
-## 🧠 Core Idea
-
-We first **understand the book**, then **perform it**.
-
-That means:
-- Understanding **who is speaking**
-- Understanding **how they feel**
-- Preserving **voice consistency**
-- Shaping **delivery, pauses, and emphasis**
-- Generating audio **incrementally and safely**
-
----
-
-## 🏗️ High-Level Architecture
-
-### Stage A — PDF Ingestion & Normalization
-**Input:** text-based PDF (no OCR required)
-
-- Extract text via PyPDF2
-- Remove headers, footers, line breaks, hyphenation
-- Normalize quotes and punctuation
-- Optional chapter detection via heuristics
-
-**Output:** normalized text
-
----
-
-### Stage B — Scene-Level Segmentation
-Audiobooks work best on **coherent windows**, not whole chapters.
-
-- Rolling “scene-like” windows  
-- Example: 6–10 sentences, stride 3–5  
-- Preserves narrative flow and temporal order
-
-**Output:** `scenes.jsonl`
-
----
-
-### Stage C — Character Discovery & Coreference
-Goal: **stable character identities** across the entire book.
-
-- Named Entity Recognition (`PERSON`)
-- Alias merging (e.g. *Elizabeth* ↔ *Liz*)
-- Coreference resolution (*he*, *she*, *the doctor*)
-- Frequency thresholds to filter noise
-
-**Outputs:**
-- `characters.json`
-- `mentions.jsonl`
-
----
-
-### Stage D — Dialogue & Speaker Attribution
-We distinguish:
-
-- **Narration**
-- **Dialogue**
-- **Internal monologue** (optional)
-
-Speaker inference uses:
-- Quote detection
-- Attribution verbs (“said”, “asked”, “replied”)
-- Coreference-aware nearest-speaker logic
-- Safe fallback to narrator if uncertain
-
-**Output:** `utterances.jsonl`
-
----
-
-### Stage E — Emotion & Delivery Modeling
-This is where realism emerges.
-
-For each utterance we infer:
-- Sentiment / polarity
-- Emotional intensity
-- Speaking intent (calm, tense, playful, angry)
-- Pacing and pause structure
-
-These become **delivery directives** for TTS:
-- Pace
-- Energy
-- Emphasis points
-- Pause length
-
-**Output:** `delivery.jsonl`
-
----
-
-### Stage F — Voice Casting (Consistency First)
-Each character is assigned **one stable voice**.
-
-- Narrator voice (global)
-- One voice per character
-- Optional hints: age, tone, temperament
-- No mid-book voice drift
-
-**Output:** `voice_map.json`
-
----
-
-### Stage G — Chunked Audio Synthesis
-Audiobooks are long. We generate audio safely.
-
-- One utterance → one audio job
-- Content-hash caching
-- Rate-limit-safe batching
-- Retry-friendly execution
-
-**Outputs:**
-- `results/audio_chunks/`
-- `results/audio_manifest.json`
-
----
-
-### Stage H — Stitching & Mastering
-Final polish:
-
-- Order-preserving merge
-- Loudness normalization
-- Micro-fades between chunks
-- Optional chapter-level exports
-
-**Output:**
-- `results/audiobook.mp3`
-- `results/chapters/*.mp3`
-
----
-
-## 🔁 Data Flow Overview
-
-```text
-PDF
- └─> Text Extraction
-     └─> Scene Segmentation
-         └─> Character + Coref
-             └─> Dialogue Attribution
-                 └─> Emotion Modeling
-                     └─> Voice Casting
-                         └─> Chunked TTS
-                             └─> Stitching
-                                 └─> Audiobook
 ```
-
-## 🎭 What Makes It Feel Real
-
-✅ Voice Consistency
-Characters never change voices mid-story.
-
-✅ Context-Aware Delivery
-Emotion and intent shape how lines are spoken.
-
-✅ Natural Pacing
-Pauses, emphasis, and transitions feel human.
-
-✅ Narrative Structure Preserved
-Scenes and chapters flow naturally.
-
-## 🧪 Analysis Layer (Character Graphs)
-
-- The repo currently includes a powerful analysis engine (ner.py) that:
-- Builds interaction graphs
-- Infers relationship dynamics
-- Clusters emergent relationship types
-- Produces auditable evidence with quotes
-
-### Outputs:
-
-- interaction_graph.html
-- relationship_clusters_graph.html
-- relationship_events.jsonl
-- cluster_summary.json
-
-## 🚀 Quickstart
-
-### Environment Setup
-```python
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python -m spacy download en_core_web_sm
-```
-
-### Create .env (not committed):
-```shell
-OPENAI_API_KEY=your_key_here
-OPENAI_MODEL=gpt-4o-mini
-```
-
-### Run Analysis
-```shell
-python ner.py path/to/book.pdf
-```
-
-Artifacts are written to results/ (git-ignored).
-
-```text
-📁 Recommended Repo Structure
 .
-├─ ner.py                      # Character + relationship inference
-├─ pipeline/                   # (future) full audiobook pipeline
-│  ├─ extract.py
-│  ├─ segment.py
-│  ├─ characters.py
-│  ├─ dialogue.py
-│  ├─ emotion.py
-│  ├─ voices.py
-│  ├─ tts.py
-│  └─ stitch.py
-├─ results/                    # Generated outputs (ignored)
-├─ requirements.txt
-├─ .env.example
-└─ README.md
+├── backend/                    # FastAPI backend
+│   ├── __init__.py
+│   ├── main.py                 # FastAPI application entry
+│   ├── config.py               # Configuration management
+│   ├── api/
+│   │   ├── __init__.py
+│   │   └── routes.py           # API route definitions
+│   └── services/
+│       ├── __init__.py
+│       ├── pdf_processor.py    # Main PDF processing orchestration
+│       ├── character_extractor.py
+│       ├── relationship_extractor.py
+│       ├── visualization.py
+│       └── text_utils.py
+├── frontend/                   # React + Vite frontend
+│   ├── index.html
+│   ├── package.json
+│   ├── tsconfig.json
+│   ├── vite.config.ts
+│   └── src/
+│       ├── App.tsx
+│       ├── main.tsx
+│       ├── styles.css
+│       ├── api/
+│       │   └── index.ts        # API client
+│       └── components/
+│           ├── GraphViewer.tsx
+│           └── UploadZone.tsx
+├── cli.py                      # Command-line interface
+├── requirements.txt            # Python dependencies
+├── .env.example                # Environment variable template
+├── .gitignore
+├── LICENSE
+└── README.md
 ```
 
-## 🧭 Design Principles
+## Quick Start
 
-- Auditability: every stage writes inspectable artifacts
+### Prerequisites
 
-- Determinism: stable voices, caching, repeatable runs
+- Python 3.10+
+- Node.js 18+
+- Ollama (for local LLM inference)
 
-- Fail-safe: narrator fallback when uncertain
+### 1. Backend Setup
 
-- Schema-free: relationships emerge, not hardcoded
+```bash
+# Create and activate virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-- Bounded runtime: batching + candidate limits
+# Install dependencies
+pip install -r requirements.txt
 
-## 🗺️ Roadmap
+# Download spaCy model
+python -m spacy download en_core_web_sm
 
- - Robust chapter & TOC parsing
+# Copy environment template
+cp .env.example .env
+```
 
- - Improved speaker attribution models
+### 2. Ollama Setup (Local LLM)
 
- - Emotion smoothing across scenes
+```bash
+# Install Ollama (macOS)
+brew install ollama
 
- - Provider-specific prosody tuning
+# Start Ollama service
+brew services start ollama
 
- - Automatic voice casting via embeddings
+# Pull a model
+ollama pull llama3.2
+```
 
- - One-command CLI: pdf2audiobook book.pdf
+### 3. Frontend Setup
 
-## ⚠️ Notes & Constraints
+```bash
+cd frontend
+npm install
+```
 
-Text-extractable PDFs only (OCR not yet included)
+### 4. Run the Application
 
-Speaker attribution is probabilistic
+**Start the backend:**
+```bash
+# From project root
+uvicorn backend.main:app --reload --port 8000
+```
 
-Audio realism depends on TTS provider controls
+**Start the frontend (new terminal):**
+```bash
+cd frontend
+npm run dev
+```
 
-## 📜 License
+Visit **http://localhost:5173** and upload a PDF!
+
+## CLI Usage
+
+For command-line processing without the web interface:
+
+```bash
+# Local mode (default, FREE)
+python cli.py path/to/book.pdf
+
+# Specify Ollama model
+python cli.py path/to/book.pdf --local_model mistral
+
+# Cloud mode (requires OPENAI_API_KEY)
+python cli.py path/to/book.pdf --cloud
+
+# Limit pages processed
+python cli.py path/to/book.pdf --max_pages 50
+```
+
+Results are saved to the `results/` directory:
+- `characters.json` - Discovered characters and frequencies
+- `relationships.jsonl` - Extracted relationships with evidence
+- `character_graph.html` - Interactive visualization
+
+## Configuration
+
+All configuration is done via environment variables. See `.env.example` for all options.
+
+### Key Settings
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `USE_LOCAL_LLM` | `true` | Use Ollama (true) or OpenAI (false) |
+| `LOCAL_MODEL` | `llama3.2` | Ollama model to use |
+| `OPENAI_API_KEY` | - | Required for cloud mode |
+| `UPLOAD_MAX_SIZE_MB` | `50` | Maximum PDF upload size |
+| `CORS_ORIGINS` | `localhost:*` | Allowed frontend origins |
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/process` | Upload PDF and get graph HTML |
+| GET | `/api/health` | Health check |
+| GET | `/health` | Root health check |
+
+### Process PDF
+
+```bash
+curl -X POST "http://localhost:8000/api/process" \
+  -F "file=@book.pdf" \
+  -H "Content-Type: multipart/form-data"
+```
+
+Response:
+```json
+{
+  "graphHtml": "<!DOCTYPE html>..."
+}
+```
+
+## Security Considerations
+
+This application includes several security measures:
+
+1. **CORS**: Restricted to configured origins (configure in production)
+2. **File Size Limits**: Prevents DoS via large uploads (default: 50MB)
+3. **File Type Validation**: Only accepts PDF files
+4. **Temp File Cleanup**: Automatic cleanup of uploaded files
+5. **No Secrets in Code**: All sensitive config via environment variables
+
+**Production Recommendations:**
+- Set `CORS_ORIGINS` to your specific frontend domain
+- Use a reverse proxy (nginx) for TLS termination
+- Set `DEBUG=false` and `ENVIRONMENT=production`
+- Consider adding rate limiting via your reverse proxy
+
+## Development
+
+### Backend Development
+
+```bash
+# Run with auto-reload
+uvicorn backend.main:app --reload
+
+# Run tests (if added)
+pytest
+```
+
+### Frontend Development
+
+```bash
+cd frontend
+
+# Development server with hot reload
+npm run dev
+
+# Type checking
+npm run type-check
+
+# Production build
+npm run build
+```
+
+## How It Works
+
+### 1. PDF Extraction
+Text is extracted from PDF pages using PyPDF2, then cleaned and normalized.
+
+### 2. Character Discovery (NER)
+spaCy's Named Entity Recognition identifies PERSON entities. Coreference resolution (via fastcoref) links pronouns to named characters.
+
+### 3. Alias Resolution
+Common patterns are detected (e.g., "Elizabeth" and "Lizzie" → same character).
+
+### 4. Interaction Graph
+Characters appearing in the same text windows are linked, creating a co-occurrence graph.
+
+### 5. Relationship Extraction
+For significant character pairs, the LLM analyzes evidence sentences to determine:
+- Relationship type (family, romantic, friend, enemy, etc.)
+- Direction (A is father OF B, vs mutual friendship)
+- Supporting quotes
+
+### 6. Visualization
+Results are rendered as an interactive vis.js network graph with:
+- Color-coded relationship types
+- Weighted node sizes by character importance
+- Hover tooltips with relationship details
+
+## License
 
 [GNU General Public License](LICENSE)
