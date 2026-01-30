@@ -1,0 +1,39 @@
+# =============================================================================
+# Docker Build Context Ignore File (Frontend)
+# =============================================================================
+
+# Dependencies
+node_modules
+
+# Build output (we build inside Docker)
+dist
+.vite
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# Testing
+coverage
+.nyc_output
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Documentation
+*.md

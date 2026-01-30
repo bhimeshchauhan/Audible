@@ -58,13 +58,73 @@ Upload a book PDF, and the application will:
 
 ## Quick Start
 
-### Prerequisites
+### Option A: Docker (Recommended)
+
+The easiest way to run the application is with Docker Compose.
+
+#### Prerequisites
+
+- Docker and Docker Compose
+- Ollama running on host machine (for local LLM inference)
+
+#### 1. Configure Environment
+
+```bash
+# Copy the environment template
+cp .env.example .env
+
+# Edit .env to configure LLM settings:
+# - USE_LOCAL_LLM=true for Ollama (free, private)
+# - USE_LOCAL_LLM=false and set OPENAI_API_KEY for OpenAI
+```
+
+#### 2. Start Ollama (if using local LLM)
+
+```bash
+# Install Ollama (macOS)
+brew install ollama
+
+# Start Ollama service
+brew services start ollama
+
+# Pull a model
+ollama pull llama3.2
+```
+
+#### 3. Build and Run
+
+```bash
+# Build and start containers in detached mode
+docker compose up --build -d
+
+# View logs
+docker compose logs -f
+
+# Stop containers
+docker compose down
+```
+
+#### 4. Access the Application
+
+- **Frontend**: http://localhost
+- **API**: http://localhost/api/process
+- **Health Check**: http://localhost/health
+
+Upload a PDF and watch the character relationship graph appear!
+
+---
+
+### Option B: Local Development
+
+For development with hot reloading:
+
+#### Prerequisites
 
 - Python 3.10+
 - Node.js 18+
 - Ollama (for local LLM inference)
 
-### 1. Backend Setup
+#### 1. Backend Setup
 
 ```bash
 # Create and activate virtual environment
@@ -188,10 +248,11 @@ This application includes several security measures:
 5. **No Secrets in Code**: All sensitive config via environment variables
 
 **Production Recommendations:**
-- Set `CORS_ORIGINS` to your specific frontend domain
-- Use a reverse proxy (nginx) for TLS termination
-- Set `DEBUG=false` and `ENVIRONMENT=production`
-- Consider adding rate limiting via your reverse proxy
+- Use Docker Compose for deployment (`docker compose up --build -d`)
+- The nginx reverse proxy handles TLS termination and rate limiting
+- CORS is automatically configured for same-origin requests through nginx
+- Set `DEBUG=false` and `ENVIRONMENT=production` (defaults in Docker)
+- For external HTTPS, place a TLS-terminating proxy (Traefik, Caddy) in front
 
 ## Development
 
@@ -219,6 +280,40 @@ npm run type-check
 # Production build
 npm run build
 ```
+
+## Docker Architecture
+
+When running with Docker Compose, the application uses a production-grade setup:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Docker Network                          │
+│                                                             │
+│   ┌─────────────────────┐      ┌─────────────────────────┐ │
+│   │   Frontend (nginx)  │      │   Backend (FastAPI)     │ │
+│   │   Port 80 (exposed) │──────│   Port 8000 (internal)  │ │
+│   │                     │      │                         │ │
+│   │   - Static assets   │      │   - gunicorn + uvicorn  │ │
+│   │   - SPA routing     │      │   - 4 worker processes  │ │
+│   │   - Reverse proxy   │      │   - PDF processing      │ │
+│   │   - Rate limiting   │      │   - LLM integration     │ │
+│   └─────────────────────┘      └───────────┬─────────────┘ │
+│                                            │               │
+└────────────────────────────────────────────┼───────────────┘
+                                             │
+                                   ┌─────────▼─────────┐
+                                   │  Ollama (host)    │
+                                   │  Port 11434       │
+                                   └───────────────────┘
+```
+
+**Key Features:**
+- **Multi-stage builds**: Minimal image sizes (nginx alpine, python slim)
+- **Non-root users**: Backend runs as `appuser`, nginx workers as `nginx`
+- **Health checks**: Automatic container health monitoring
+- **Rate limiting**: nginx protects against API abuse
+- **Resource limits**: Memory constraints prevent runaway processes
+- **Restart policies**: Containers auto-restart on failure
 
 ## How It Works
 

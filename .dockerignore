@@ -1,0 +1,64 @@
+# =============================================================================
+# Docker Build Context Ignore File (Root)
+# =============================================================================
+
+# Git
+.git
+.gitignore
+
+# Environment files (secrets)
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv
+venv
+ENV
+env
+.eggs
+*.egg-info
+*.egg
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache
+.coverage
+htmlcov
+.tox
+.nox
+
+# Documentation
+*.md
+!README.md
+docs/
+
+# Results/Output
+results/
+*.html
+*.json
+*.jsonl
+
+# Frontend (handled by its own Dockerfile)
+frontend/node_modules
+frontend/dist
+frontend/.vite
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/

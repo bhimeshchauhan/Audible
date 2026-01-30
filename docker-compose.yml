@@ -1,0 +1,148 @@
+# =============================================================================
+# Docker Compose for PDF Character Graph Application
+# Production-grade setup with nginx reverse proxy
+# =============================================================================
+#
+# Usage:
+#   docker compose up --build -d     # Build and start in detached mode
+#   docker compose logs -f           # Follow logs
+#   docker compose down              # Stop and remove containers
+#
+# Access:
+#   - Frontend:  http://localhost
+#   - API:       http://localhost/api/process
+#   - Health:    http://localhost/health
+#
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # Backend: FastAPI with gunicorn + uvicorn workers
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: audible-backend
+    restart: unless-stopped
+    
+    # Environment variables from .env file
+    env_file:
+      - .env
+    
+    environment:
+      # Server configuration
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8000
+      - SERVER_WORKERS=${SERVER_WORKERS:-4}
+      
+      # CORS: Strict same-origin since nginx proxies requests
+      # Only allow requests from the nginx frontend (internal docker network)
+      - CORS_ORIGINS=http://localhost,http://frontend
+      - CORS_CREDENTIALS=true
+      - CORS_METHODS=GET,POST,OPTIONS
+      - CORS_HEADERS=Content-Type,Accept
+      
+      # Upload configuration
+      - UPLOAD_MAX_SIZE_MB=${UPLOAD_MAX_SIZE_MB:-50}
+      - UPLOAD_TEMP_DIR=/tmp/uploads
+      
+      # LLM Configuration (from .env)
+      - USE_LOCAL_LLM=${USE_LOCAL_LLM:-true}
+      - LOCAL_MODEL=${LOCAL_MODEL:-llama3.2}
+      - LOCAL_BASE_URL=${LOCAL_BASE_URL:-http://host.docker.internal:11434/v1}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
+      - LLM_TEMPERATURE=${LLM_TEMPERATURE:-0.0}
+      - LLM_MAX_WORKERS=${LLM_MAX_WORKERS:-2}
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Resource limits (adjust based on your server)
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 1G
+    
+    # Expose port only within docker network (not to host)
+    expose:
+      - "8000"
+    
+    networks:
+      - audible-network
+
+  # ---------------------------------------------------------------------------
+  # Frontend: React SPA served by nginx with reverse proxy
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+    container_name: audible-frontend
+    restart: unless-stopped
+    
+    # Expose port 80 to host
+    ports:
+      - "80:80"
+    
+    # Wait for backend to be healthy before starting
+    depends_on:
+      backend:
+        condition: service_healthy
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 64M
+    
+    networks:
+      - audible-network
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  audible-network:
+    driver: bridge
+
+# =============================================================================
+# Notes:
+# =============================================================================
+# 
+# Ollama Integration:
+#   If using local LLM with Ollama, ensure Ollama is running on the host machine.
+#   The backend connects via host.docker.internal:11434 by default.
+#   
+#   On Linux, you may need to add this to the backend service:
+#     extra_hosts:
+#       - "host.docker.internal:host-gateway"
+#
+# Production Deployment:
+#   - Add TLS termination (use a reverse proxy like Traefik or Caddy)
+#   - Set up proper log aggregation
+#   - Configure backup for any persistent data
+#   - Use Docker secrets for sensitive environment variables
+#   - Consider using Docker Swarm or Kubernetes for orchestration
+#
+# =============================================================================
